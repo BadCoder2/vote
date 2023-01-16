@@ -2,13 +2,16 @@
 
 from flask import Flask, render_template, redirect, url_for, request, make_response, current_app, abort
 from flask_table import Table, Col
+from flask_socketio import SocketIO, emit
 import random
 
 # tcode = teacher code, teachers generate and share this code with students, and students use this code to join the class (also referred to as scode and skey during student login)
 # key = master key, used to verify teacher (students shouldn't have this)
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret123'
 app.config.from_object(__name__)
+socketio=SocketIO(app)
 
 @app.route('/')
 def index():
@@ -241,4 +244,4 @@ badsession = Session()
 session = badsession.real
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)
