@@ -1,0 +1,15 @@
+<h3>Welcome!</h3>
+<h1><FONT COLOR="#ff0000"> {{error}}</FONT></h1>
+<h3>{{TXT_RESPONSE}}</h3>
+<i>Your student ID is: {{STUDENT_ID}}</i>
+<p>Your name is: {{SNAME}}</p>
+<p>Your current vote is: {{VOTE}}</p>
+<form action="" method="post">
+    <input name="username" type="username" value="{{request.form.username}}" placeholder="New Name" />
+    <input type="submit" value="Submit"/>
+</form>
+<form action="" method="post">
+    <input type="submit" name="change-vote-yes" value="Good">
+    <input type="submit" name="change-vote-neutral" value="Neutral">
+    <input type="submit" name="change-vote-no" value="Bad">
+</form>
