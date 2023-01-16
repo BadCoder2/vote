@@ -1,11 +1,24 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+    <script type="text/javascript" charset="utf-8">
+    var socket = io();
+    socket.on('change', function(msg){
+      console.log(msg);
+      document.getElementById("good-votes").innerHTML = msg["good"];
+      document.getElementById("n-votes").innerHTML = msg["neutral"];
+      document.getElementById("bad-votes").innerHTML = msg["bad"];
+      document.getElementById("table").innerHTML = msg["table"];
+    });
+</script>
+  </head>
   <body>
     <p>Teacher code: {{TEACHER_CODE}}<br></p>
     <p>Vote totals:<br></p>
-      <p style="line-height:1.2">Good - <span id="good-votes"></span><br>
-      Neutral - <span id="n-votes"></span><br>
-      Bad - <span id="bad-votes"></span><br></p>
-    <p>{{ TABLE_ELM }}</p>
+      <p style="line-height:1.2">Good - <span id="good-votes"> {{VOTES["good"]}} </span><br>
+      Neutral - <span id="n-votes"> {{VOTES["neutral"]}} </span><br>
+      Bad - <span id="bad-votes"> {{VOTES["bad"]}} </span><br></p>
+    <p id="table"> {{TABLE_ELM}} </p>
   </body>
 </html>

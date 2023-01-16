@@ -213,6 +213,15 @@ def countVotes(arrOfVotes):
         elif vote == "Bad":
             bad += 1
     return {"good": good, "neutral": neutral, "bad": bad}
+def prepMessage(countedVoteDict, table):
+    x = {
+        "good": countedVoteDict["good"],
+        "neutral": countedVoteDict["neutral"],
+        "bad": countedVoteDict["bad"],
+        "table": table
+    }
+    return x
+
 
 class StudentTable(Table):
     sid = Col('Student ID')
