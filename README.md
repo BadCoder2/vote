@@ -5,7 +5,6 @@
 <img src="example-images/teacher-view.png" alt="Image from Teacher View" width="200"/>
 
 ## Quickstart
-```bash
->set FLASK_DEBUG=1
->flask run -h localhost -p 4000 --debugger
-```
+
+Only use `python app.py`; do not use `flask run`
+(for compatability with flask-socketio)
