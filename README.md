@@ -8,3 +8,11 @@
 
 Only use `python app.py`; do not use `flask run`
 (for compatability with flask-socketio)
+
+## Current method for sockets live-updating data
+```mermaid
+sequenceDiagram
+Server ->> Client: change detected, send tcode pls
+Client ->> Server: tcode (and, implictly, callback info)
+Server ->> Client: change, including type and data
+```
