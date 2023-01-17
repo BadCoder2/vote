@@ -222,7 +222,6 @@ class Session(object):
         self.real = {
             'rkey': '123456',
             'TeacherCodes': ["000000"],
-            'StudentCodes': ["0000"],
             'Students': {
                 '0000': {
                     'username': 'PlaceholderName0000',
