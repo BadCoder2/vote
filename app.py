@@ -213,7 +213,7 @@ def handle_tcode_reply_changetable(tcode):
         table= StudentTable(rStudents)
         emit("changetable", table.__html__())
 
-def convertVote(inputName):
+def convertVote(inputName): #yes | neutral | no --> Good | Neutral | Bad
     if inputName.lower() == "yes":
         return "Good"
     elif inputName.lower() == "neutral":
@@ -222,7 +222,7 @@ def convertVote(inputName):
         return "Bad"
     else:
         return inputName
-def agrStudentsGivenCode(students, tcode, fixvotes):
+def agrStudentsGivenCode(students, tcode, fixvotes): #returns array of dictionaries
     #returns [{...}, {...}, ...] (an array of dictionaries)
     #because students is {x:{...}, y:{...}, ...}
     #dict format is [{id: x, username: y, vote: z}, {id: x, username: y, vote: z}, ...}]
@@ -235,12 +235,12 @@ def agrStudentsGivenCode(students, tcode, fixvotes):
                 newDict = {"sid": sid, "username": nesteddict["username"], "vote": nesteddict["vote"]}
             agrdStudents += [newDict]
     return agrdStudents
-def getVotesOfStudents(relevantStudents):
+def getVotesOfStudents(relevantStudents): #returns array (in no particular order)
     votes = []
     for student in relevantStudents:
         votes += [student["vote"]]
     return votes
-def countVotes(arrOfVotes):
+def countVotes(arrOfVotes): #Good | Neutral | Bad --> {good: x, neutral: y, bad: z}
     good = 0
     neutral = 0
     bad = 0
@@ -252,7 +252,7 @@ def countVotes(arrOfVotes):
         elif vote == "Bad":
             bad += 1
     return {"good": good, "neutral": neutral, "bad": bad}
-def countVotesRaw(arrOfVotes):
+def countVotesRaw(arrOfVotes): #returns dict, same structure as countVotes
     good = 0
     neutral = 0
     bad = 0
@@ -264,7 +264,7 @@ def countVotesRaw(arrOfVotes):
         elif vote == "no":
             bad += 1
     return {"good": good, "neutral": neutral, "bad": bad}
-def prepMessage(countedVoteDict, table):
+def prepMessage(countedVoteDict, table): #returns dict
     x = {
         "good": countedVoteDict["good"],
         "neutral": countedVoteDict["neutral"],
@@ -272,8 +272,13 @@ def prepMessage(countedVoteDict, table):
         "table": table
     }
     return x
-def sendMsg(name, msg, namespace):
+def sendMsg(name, msg, namespace): #doesn't return anything :(
     socketio.emit(name, msg, namespace=namespace)
+    return
+def delStudent(sid): #!!!this assumes that the student exists!!!
+    del session["Students"][sid]
+    socketio.emit("changetablewarn", "removing student/1")
+    socketio.emit("changevotewarn", "removing student/2")
     return
 
 
