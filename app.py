@@ -9,7 +9,6 @@ import random
 # key = master key, used to verify teacher (students shouldn't have this)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret123'
 app.config.from_object(__name__)
 socketio=SocketIO(app)
 
