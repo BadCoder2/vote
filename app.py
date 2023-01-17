@@ -2,13 +2,16 @@
 
 from flask import Flask, render_template, redirect, url_for, request, make_response, current_app, abort
 from flask_table import Table, Col
+from flask_socketio import SocketIO, emit
 import random
 
 # tcode = teacher code, teachers generate and share this code with students, and students use this code to join the class (also referred to as scode and skey during student login)
 # key = master key, used to verify teacher (students shouldn't have this)
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret123'
 app.config.from_object(__name__)
+socketio=SocketIO(app)
 
 @app.route('/')
 def index():
@@ -58,8 +61,7 @@ def teacher_dashboard():
     rStudents = agrStudentsGivenCode(session['Students'], tcode, True)
     if rStudents != []:
         votes = countVotes(getVotesOfStudents(rStudents))
-        items = rStudents
-        table= StudentTable(items)
+        table= StudentTable(rStudents)
         if tcodeGen == 0:
             return render_template('teacher-dashboard.html.j2', TEACHER_CODE=tcode,TABLE_ELM=table.__html__(), VOTES=votes)
         else:
@@ -121,6 +123,7 @@ def student_dashboard():
             username = ''.join(filter(str.isalnum, request.form["username"]))
             curStudent["username"] = username
             txtResponse = "Username changed to " + username + " successfully."
+            socketio.emit("changetablewarn", "do something please for real aaa")
         elif "change-vote-yes" in request.form:
             curVote = "yes"
             print("Vote changed to yes")
@@ -132,7 +135,9 @@ def student_dashboard():
             print("Vote changed to no")
         else:
             abort(400, "Invalid request (form data key not recognized, form data below)\n " + str(request.form))
-        curStudent["vote"] = curVote
+        if curStudent["vote"] != curVote:
+            curStudent["vote"] = curVote
+            socketio.emit("changevotewarn", "do something please")
         session["Students"][student_id] = curStudent
         #TODO: improve this
         return render_template('student-dashboard.html.j2', TXT_RESPONSE=txtResponse, VOTE=convertVote(session["Students"][student_id]["vote"]), STUDENT_ID=student_id, SNAME=session["Students"][student_id]["username"])
@@ -167,9 +172,46 @@ def student_dashboard():
                 resp = make_response(render_template('student-dashboard.html.j2', STUDENT_ID=y, SNAME=session["Students"][str(y)]["username"], VOTE=convertVote(session["Students"][str(y)]["vote"])))
                 resp.set_cookie('student_id', str(y))
                 print("set sid: "+str(y))
+                socketio.emit("changetablewarn", "should probably do something!!")
+                socketio.emit("changevotewarn", "awful way of doing this but here we are")
+                print("socket emitted")
                 return resp
         #do stuff here
         return render_template('student-dashboard.html.j2', STUDENT_ID=student_id,SNAME=session["Students"][student_id]["username"], VOTE=convertVote(session["Students"][student_id]["vote"]))
+
+#note for optimization: every element is regenerated for every client, horribly inefficient, caching will be much better
+
+@socketio.on('tcode-reply-changevote')
+def handle_tcode_reply_changevote(tcode):
+    print("handling reply to changevote, tcode: " + str(tcode))
+    if tcode not in session['TeacherCodes']:
+        #need to reply and say that the tcode is invalid
+        print("tcode "+str(tcode)+" not in session (handling error in socket)")
+        print("Session: " + str(session["TeacherCodes"]))
+        errorDict = {
+            "good": "ERROR",
+            "neutral": "ERROR",
+            "bad": "ERROR"
+        }
+        emit("changevotes", errorDict)
+    else:
+        #need to reply with the votes
+        votes = countVotesRaw(getVotesOfStudents(agrStudentsGivenCode(session["Students"], tcode, False)))
+        emit("changevotes", votes)
+@socketio.on('tcode-reply-changetable')
+def handle_tcode_reply_changetable(tcode):
+    print("handling reply to changetable, tcode: " + str(tcode))
+    if tcode not in session['TeacherCodes']:
+        #need to reply and say that the tcode is invalid
+        print("tcode "+str(tcode)+" not in session (handling error in socket)")
+        print("Session: " + str(session["TeacherCodes"]))
+        htmlError = "<p style='color: red;'>ERROR</p>"
+        emit("changetable", htmlError)
+    else:
+        #need to reply with a table
+        rStudents = agrStudentsGivenCode(session["Students"], tcode, False)
+        table= StudentTable(rStudents)
+        emit("changetable", table.__html__())
 
 def convertVote(inputName):
     if inputName.lower() == "yes":
@@ -210,6 +252,30 @@ def countVotes(arrOfVotes):
         elif vote == "Bad":
             bad += 1
     return {"good": good, "neutral": neutral, "bad": bad}
+def countVotesRaw(arrOfVotes):
+    good = 0
+    neutral = 0
+    bad = 0
+    for vote in arrOfVotes:
+        if vote == "yes":
+            good += 1
+        elif vote == "neutral":
+            neutral += 1
+        elif vote == "no":
+            bad += 1
+    return {"good": good, "neutral": neutral, "bad": bad}
+def prepMessage(countedVoteDict, table):
+    x = {
+        "good": countedVoteDict["good"],
+        "neutral": countedVoteDict["neutral"],
+        "bad": countedVoteDict["bad"],
+        "table": table
+    }
+    return x
+def sendMsg(name, msg, namespace):
+    socketio.emit(name, msg, namespace=namespace)
+    return
+
 
 class StudentTable(Table):
     sid = Col('Student ID')
@@ -240,4 +306,4 @@ badsession = Session()
 session = badsession.real
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True, port=4000)
