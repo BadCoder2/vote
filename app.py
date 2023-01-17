@@ -9,7 +9,6 @@ import random
 # key = master key, used to verify teacher (students shouldn't have this)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret123'
 app.config.from_object(__name__)
 socketio=SocketIO(app)
 
@@ -30,7 +29,7 @@ def teacher_login():
             return resp
     return render_template('teacher-login.html.j2', error=error)
 
-@app.route('/teacher-dashboard')    
+@app.route('/teacher-dashboard', methods=['GET', 'POST'])    
 def teacher_dashboard():
     #gotta use a socket to live update data??
     if True: #teacher id verification
@@ -40,46 +39,58 @@ def teacher_dashboard():
         except KeyError:
             print("no tcode found")
             tcode = None
-    if 'key' not in request.cookies:
-        return redirect(url_for('teacher_login'))
-    if tcode not in session['TeacherCodes']: #don't look at this code, it's a mess
-        print("tcode not in session")
-        print(session['TeacherCodes'])
-        key = request.cookies['key']
-        if key != session['rkey']:
+    if request.method == 'POST':
+        if True: #stupid verification step that frankly shouldn't even be here, but here we are
+            if tcode not in session['TeacherCodes']:
+                return redirect(url_for('teacher_dashboard'))
+            elif request.cookies['key'] != session['rkey']:
+                return redirect(url_for('teacher_login'))
+        if request.form["kickstudent"] in session['Students'].keys():
+            delStudent(request.form["kickstudent"])
+            return redirect(url_for('teacher_dashboard'))
+        else:
+            return redirect(url_for('teacher_dashboard', error=('Invalid request (student id not in internal database)')))
+    else:
+        if 'key' not in request.cookies:
             return redirect(url_for('teacher_login'))
-        #generate random 6 digits
-        x = random.randint(100000, 999999)
-        while x in session['TeacherCodes']:
+        if tcode not in session['TeacherCodes']: #don't look at this code, it's a mess
+            print("tcode not in session")
+            print(session['TeacherCodes'])
+            key = request.cookies['key']
+            if key != session['rkey']:
+                return redirect(url_for('teacher_login'))
+            #generate random 6 digits
             x = random.randint(100000, 999999)
-        session['TeacherCodes'] += [str(x)]
-        print(session['TeacherCodes'])
-        tcodeGen = 1
-        tcode = str(x)
-    else:
-        tcodeGen = 0
-    rStudents = agrStudentsGivenCode(session['Students'], tcode, True)
-    if rStudents != []:
-        votes = countVotes(getVotesOfStudents(rStudents))
-        table= StudentTable(rStudents)
-        if tcodeGen == 0:
-            return render_template('teacher-dashboard.html.j2', TEACHER_CODE=tcode,TABLE_ELM=table.__html__(), VOTES=votes)
+            while x in session['TeacherCodes']:
+                x = random.randint(100000, 999999)
+            session['TeacherCodes'] += [str(x)]
+            print(session['TeacherCodes'])
+            tcodeGen = 1
+            tcode = str(x)
         else:
-            resp = make_response(render_template('teacher-dashboard.html.j2', TEACHER_CODE=tcode,TABLE_ELM=table.__html__(), VOTES=votes))
-            resp.set_cookie('tcode', str(tcode))
-            return resp
-    else:
-        voteSub = {
-            "good": 0,
-            "neutral": 0,
-            "bad": 0
-        }
-        if tcodeGen == 0:
-            return render_template('teacher-dashboard.html.j2', TEACHER_CODE=tcode,TABLE_ELM="No students have joined yet", VOTES=voteSub)
+            tcodeGen = 0
+        rStudents = agrStudentsGivenCode(session['Students'], tcode, True)
+        if rStudents != []:
+            votes = countVotes(getVotesOfStudents(rStudents))
+            table= StudentTable(rStudents)
+            if tcodeGen == 0:
+                return render_template('teacher-dashboard.html.j2', TEACHER_CODE=tcode,TABLE_ELM=table.__html__(), VOTES=votes)
+            else:
+                resp = make_response(render_template('teacher-dashboard.html.j2', TEACHER_CODE=tcode,TABLE_ELM=table.__html__(), VOTES=votes))
+                resp.set_cookie('tcode', str(tcode))
+                return resp
         else:
-            resp = make_response(render_template('teacher-dashboard.html.j2', TEACHER_CODE=tcode,TABLE_ELM="No students have joined yet", VOTES=voteSub))
-            resp.set_cookie('tcode', str(tcode))
-            return resp
+            voteSub = {
+                "good": 0,
+                "neutral": 0,
+                "bad": 0
+            }
+            if tcodeGen == 0:
+                return render_template('teacher-dashboard.html.j2', TEACHER_CODE=tcode,TABLE_ELM="No students have joined yet", VOTES=voteSub)
+            else:
+                resp = make_response(render_template('teacher-dashboard.html.j2', TEACHER_CODE=tcode,TABLE_ELM="No students have joined yet", VOTES=voteSub))
+                resp.set_cookie('tcode', str(tcode))
+                return resp
 
 
 
@@ -105,7 +116,7 @@ def student_dashboard():
             except KeyError:
                 print("no student id found")
                 student_id = None
-            if student_id not in session['StudentCodes']:
+            if student_id not in session['Students'].keys():
                 return redirect(url_for('student_dashboard', error=('Invalid request (student id not in internal database)')))
         if True: #tcode verification
             try:
@@ -138,6 +149,7 @@ def student_dashboard():
         if curStudent["vote"] != curVote:
             curStudent["vote"] = curVote
             socketio.emit("changevotewarn", "do something please")
+            socketio.emit("changetablewarn", "do something please for real aaa")
         session["Students"][student_id] = curStudent
         #TODO: improve this
         return render_template('student-dashboard.html.j2', TXT_RESPONSE=txtResponse, VOTE=convertVote(session["Students"][student_id]["vote"]), STUDENT_ID=student_id, SNAME=session["Students"][student_id]["username"])
@@ -157,13 +169,12 @@ def student_dashboard():
             except KeyError:
                 print("no student id found")
                 student_id = None
-            if student_id not in session['StudentCodes']:
+            if student_id not in session['Students'].keys():
                 print("id not in session")
                 #generate random 4 digits, using y instead of x to avoid confusion with teacher code generation (4 digits vs 6 digits also to avoid confusion)
                 y = random.randint(1000, 9999)
-                while y in session['StudentCodes']:
+                while y in session['Students'].keys():
                     y = random.randint(1000, 9999)
-                session['StudentCodes'] += [str(y)]
                 session['Students'][str(y)] = {
                         'username': 'PlaceholderName'+str(y),
                         'vote': 'neutral',
@@ -210,10 +221,14 @@ def handle_tcode_reply_changetable(tcode):
     else:
         #need to reply with a table
         rStudents = agrStudentsGivenCode(session["Students"], tcode, False)
-        table= StudentTable(rStudents)
+        arr = []
+        for student in rStudents:
+            student["vote"] = convertVote(student["vote"])
+            arr.append(student)
+        table= StudentTable(arr)
         emit("changetable", table.__html__())
 
-def convertVote(inputName):
+def convertVote(inputName): #yes | neutral | no --> Good | Neutral | Bad
     if inputName.lower() == "yes":
         return "Good"
     elif inputName.lower() == "neutral":
@@ -222,7 +237,7 @@ def convertVote(inputName):
         return "Bad"
     else:
         return inputName
-def agrStudentsGivenCode(students, tcode, fixvotes):
+def agrStudentsGivenCode(students, tcode, fixvotes): #returns array of dictionaries
     #returns [{...}, {...}, ...] (an array of dictionaries)
     #because students is {x:{...}, y:{...}, ...}
     #dict format is [{id: x, username: y, vote: z}, {id: x, username: y, vote: z}, ...}]
@@ -235,12 +250,12 @@ def agrStudentsGivenCode(students, tcode, fixvotes):
                 newDict = {"sid": sid, "username": nesteddict["username"], "vote": nesteddict["vote"]}
             agrdStudents += [newDict]
     return agrdStudents
-def getVotesOfStudents(relevantStudents):
+def getVotesOfStudents(relevantStudents): #returns array (in no particular order)
     votes = []
     for student in relevantStudents:
         votes += [student["vote"]]
     return votes
-def countVotes(arrOfVotes):
+def countVotes(arrOfVotes): #Good | Neutral | Bad --> {good: x, neutral: y, bad: z}
     good = 0
     neutral = 0
     bad = 0
@@ -252,7 +267,7 @@ def countVotes(arrOfVotes):
         elif vote == "Bad":
             bad += 1
     return {"good": good, "neutral": neutral, "bad": bad}
-def countVotesRaw(arrOfVotes):
+def countVotesRaw(arrOfVotes): #returns dict, same structure as countVotes
     good = 0
     neutral = 0
     bad = 0
@@ -264,7 +279,7 @@ def countVotesRaw(arrOfVotes):
         elif vote == "no":
             bad += 1
     return {"good": good, "neutral": neutral, "bad": bad}
-def prepMessage(countedVoteDict, table):
+def prepMessage(countedVoteDict, table): #returns dict
     x = {
         "good": countedVoteDict["good"],
         "neutral": countedVoteDict["neutral"],
@@ -272,8 +287,14 @@ def prepMessage(countedVoteDict, table):
         "table": table
     }
     return x
-def sendMsg(name, msg, namespace):
+def sendMsg(name, msg, namespace): #doesn't return anything :(
     socketio.emit(name, msg, namespace=namespace)
+    return
+def delStudent(sid): #!!!this assumes that the student exists!!!
+    print("removing student id " + str(sid) + " from session")
+    del session["Students"][sid]
+    socketio.emit("changetablewarn", "removing student/1")
+    socketio.emit("changevotewarn", "removing student/2")
     return
 
 

@@ -1,3 +1,14 @@
-<h1>Please enter main key</h1>
-<p><FONT COLOR="#ff0000"> {{error}}</FONT></p>
-<form action="" method="post"><input name="key" type="password" value="{{request.form.key}}" placeholder="Key" /><input type="submit" value="Login" /></form>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    </head>
+    <body>
+        <h1>Please enter main key</h1>
+        <p><FONT COLOR="#ff0000"> {{error}}</FONT></p>
+        <form action="" method="post">
+            <input name="key" type="password" placeholder="Key"/>
+            <input type="submit" value="Login"/>
+        </form>
+    </body>
+</html>

@@ -27,7 +27,7 @@
       console.log(msg);
       document.getElementById("table").innerHTML = msg;
     });
-</script>
+    </script>
   </head>
   <body>
     <p>Teacher code: <span id='tcode'> {{TEACHER_CODE}} </span><br></p>
@@ -36,5 +36,9 @@
       Neutral - <span id="n-votes"> {{VOTES["neutral"]}} </span><br>
       Bad - <span id="bad-votes"> {{VOTES["bad"]}} </span><br></p>
     <p id="table"> {{TABLE_ELM}} </p>
+    <form action="" method="post">
+      <input name="kickstudent" type="text" placeholder="ID of student to kick"/> <!-- awful!!! warning!!! not fixed at all yet -->
+      <input type="submit" value="Kick"/>
+    </form>
   </body>
 </html>

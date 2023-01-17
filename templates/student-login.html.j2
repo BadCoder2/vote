@@ -1,3 +1,13 @@
-<h1>Please enter teacher code</h1>
-<p><FONT COLOR="#ff0000"> {{error}}</FONT></p>
-<form action="" method="post"><input name="scode" type="text" value="{{request.form.scode}}" placeholder="Code" /><input type="submit" value="Login" /></form>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    </head>
+    <body>
+        <h1>Please enter teacher code</h1>
+        <p><FONT COLOR="#ff0000"> {{error}}</FONT></p>
+        <form action="" method="post">
+            <input name="scode" type="text" placeholder="Code" /><input type="submit" value="Login"/>
+        </form>
+    </body>
+</html>
